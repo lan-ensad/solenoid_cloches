@@ -4,23 +4,19 @@ Button btn2(3);
 Button btn3(4);
 Button btn4(5);
 
+unsigned long currentMillis, prevMillis;
 boolean routine = true;
-
 //--------------------------
-//          MENU SET
-const int NBMENU = 5;
+//         MENU SET
+const int NBMENU = 6;
 int pulsePrecision = 20; //menu 1
 int pulseIntervalCourt = 33; //menu 2
 int pulseIntervalLong = 99; //menu 3
 int pulseNumber = 5; //menu 4
-int pulseWaveDelay = 15; //menu5
-/**
- * TODO
- * implémenter les shémas pour set 
- * l'interval entre chaque pulse
- */
-//int shemNumber; //menu 6
+int waveDelay = 1500; //menu5
+String shem = "01001"; //menu 6
 
+int shemIndex = 0;
 int menu  = 0;
 int val = 0;
 
@@ -32,16 +28,29 @@ void setup() {
   while (!Serial) { }; // for Leos
   Serial.begin(9600);
 }
-
+//=================================
+//           FUNCTIONS
+void Dong(int interval) {
+  Serial.print("HIGH -- ");
+  delay(pulsePrecision);
+  Serial.println("LOW");
+  delay(interval);
+}
 void Routine() {
-  int pulseWave[pulseNumber];
-  for (int i = 0; i < pulseNumber; i++) {
+  for (int i = 0; i < pulseNumber ; i++) {
     Serial.print(i);
-    Serial.print(" - ");
+    if (shem.charAt(i) == '0') {
+      Serial.print(" |court| ");
+      Dong(pulseIntervalCourt);
+    } else {
+      Serial.print(" |long| ");
+      Dong(pulseIntervalLong);
+    }
   }
   Serial.println();
 }
-
+//=================================
+//           L00P
 void loop() {
   //---------------------------
   //   TRIGGER MENU | ->(DANS LE MENU) | ROUTINE
@@ -61,8 +70,11 @@ void loop() {
   //---------------------------
   //     DANS LA ROUTINE
   if (routine) {
-    Routine();
-    delay(2000);
+    currentMillis = millis();
+    if (currentMillis - prevMillis >= waveDelay) {
+      prevMillis = currentMillis;
+      Routine();
+    }
   }
 
   //---------------------------
@@ -93,6 +105,12 @@ void loop() {
         break;
       case 3:
         if (btn1.pressed()) {
+          currentMillis = millis();
+          if(currentMillis-prevMillis>=200){
+            while(btn1.pressed()){
+              pulseIntervalLong--;
+            }
+          }
           pulseIntervalLong --;
           delay(2);
         } else if (btn2.pressed()) {
@@ -105,9 +123,11 @@ void loop() {
       case 4:
         if (btn1.pressed()) {
           pulseNumber --;
+          shem.remove(pulseNumber + 1);
           delay(2);
         } else if (btn2.pressed()) {
           pulseNumber ++;
+          shem += String(random(0, 1));
           delay(2);
         }
         Serial.print("Nombre de pulsation : ");
@@ -115,14 +135,33 @@ void loop() {
         break;
       case 5:
         if (btn1.pressed()) {
-          pulseWaveDelay --;
+          waveDelay --;
           delay(2);
         } else if (btn2.pressed()) {
-          pulseWaveDelay ++;
+          waveDelay ++;
           delay(2);
         }
-        Serial.print("Nombre de pulsation : ");
-        Serial.println(pulseWaveDelay);
+        Serial.print("Waves delay : ");
+        Serial.println(waveDelay / 1000);
+        break;
+      case 6:
+        Serial.print("shemIndex ");
+        Serial.print(shemIndex);
+        Serial.print(" : ");
+        Serial.println(shem.charAt(shemIndex));
+        if (btn1.pressed()) {
+          shem.setCharAt(shemIndex, '0');
+          delay(2);
+        } else if (btn2.pressed()) {
+          shem.setCharAt(shemIndex, '1');
+          delay(2);
+        } else if (btn3.pressed()) {
+          shemIndex ++;
+          if (shemIndex > shem.length()-1) {
+            menu = 1;
+            shemIndex = 0;            
+          }
+        }
         break;
     }
   }
